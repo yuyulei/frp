@@ -1,0 +1,7 @@
+FROM alpine:latest
+
+ADD bin/frps  /usr/local/bin/
+
+WORKDIR /usr/local/bin/
+
+CMD ["frps"]
