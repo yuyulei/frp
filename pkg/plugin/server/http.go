@@ -17,12 +17,14 @@ package plugin
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"reflect"
+	"strings"
 )
 
 type HTTPPluginOptions struct {
@@ -30,6 +32,7 @@ type HTTPPluginOptions struct {
 	Addr string   `ini:"addr"`
 	Path string   `ini:"path"`
 	Ops  []string `ini:"ops"`
+	TLSVerify bool `ini:"tls_verify"`
 }
 
 type httpPlugin struct {
@@ -40,10 +43,25 @@ type httpPlugin struct {
 }
 
 func NewHTTPPluginOptions(options HTTPPluginOptions) Plugin {
+	var url = fmt.Sprintf("%s%s", options.Addr, options.Path)
+
+	var client *http.Client
+	if strings.HasPrefix(url, "https://") {
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: options.TLSVerify == false},
+		}
+		client = &http.Client{Transport: tr}
+	} else {
+		client = &http.Client{}
+	}
+
+	if !strings.HasPrefix(url, "https://") && !strings.HasPrefix(url, "http://") {
+		url = "http://" + url
+	}
 	return &httpPlugin{
 		options: options,
-		url:     fmt.Sprintf("http://%s%s", options.Addr, options.Path),
-		client:  &http.Client{},
+		url:     url,
+		client:  client,
 	}
 }
 
